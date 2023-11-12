@@ -1,0 +1,129 @@
+﻿@model IEnumerable<BusinessObject.Product>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<h1>Index</h1>
+
+<p><a asp-action="Create">Create new</a></p>
+
+<input id="newInput"/>
+<input type="button" name="search_name_submit" value="Search" />
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.ProductName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.UnitsInStock)
+        </th>
+        <th>
+            <button id="SortPrice">
+                @Html.DisplayNameFor(model => model.UnitPrice)
+            </button>
+        </th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    </tbody>
+    
+    <button id="prevPage">Prev</button>
+    <span id="page"></span>
+    <button id="nextPage">Next</button>
+</table>
+
+
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        ShowAllProducts();
+        var originalElements;
+        var originalFilterElements;
+        var elements;
+        var page = 1;
+        
+        function ShowAllProducts() {
+            $("table tbody").html("");
+            $.ajax({
+                url: "http://localhost:5164/api/Product/GetAll",
+                type: "get",
+                contentType:"application/json; charset=utf-8",
+                dataType:"json",
+                success: function(result,status,xhr) {
+                    elements = result;
+                    originalElements = result;
+                    originalFilterElements = result;
+                    page = 1;
+                    UpdatePage();
+                },
+                error: function (xhr,status,error) {
+                    console.log(xhr)
+                }
+            });
+        }
+        function UpdatePage(){
+            $("#page").html(page);
+            $("table tbody").html("");
+            var elements1 = elements.slice(3*(page-1), 3*page);
+            $.each(elements1,function(index,value){
+                 $("tbody").append($("<tr>"));
+                 appendElement = $("tbody tr").last();
+                 appendElement.append($("<td>").html(value["productName"]));
+                 appendElement.append($("<td>").html(value["unitsInStock"]));
+                 appendElement.append($("<td>").html(value["unitPrice"]));
+                 appendElement.append($("<td>").html('|'+
+                      '<a href="/Product/Detail/'+value["id"]+'">Detail</a>|'
+                     +'<a href="/Product/Edit/'+value["id"]+'">Edit</a>|'
+                     +'<a href="/Product/Delete/'+value["id"]+'">Delete</a>|'
+                 ));
+             })
+        }
+        
+        
+        
+        $("input[name='search_name_submit']").click(function(){
+             $("table tbody").html("");
+             page = 1;
+             var cv = $('#newInput').val();
+             originalFilterElements = originalElements.filter(function (el) {return el.productName.toLowerCase().indexOf(cv.toLowerCase()) > -1;});
+             elements = [];
+             originalFilterElements.forEach(function (el) {
+                 elements.push(el);
+             });
+             UpdatePage();
+           
+        });
+        var sortType = 0;
+        $("#SortPrice").click(function (){
+            $("table tbody").html("");
+            sortType++;
+            if (sortType>2) sortType=0;
+            if(sortType===1) 
+                elements= elements.sort(function(a,b){ return a.unitPrice - b.unitPrice;});
+            else if (sortType===2)
+                elements = elements.sort(function(a,b){return b.unitPrice - a.unitPrice;});
+            else if (sortType===0){
+                elements = [];
+                originalFilterElements.forEach(function (el) {
+                    elements.push(el);
+                });
+            }
+            UpdatePage();
+        });
+        $("#prevPage").click(function (){
+            if (page>1) page--;
+            UpdatePage();
+        });
+        $("#nextPage").click(function (){
+            if (page<elements.length/3) page++;
+            UpdatePage();
+        });
+        
+    });
+</script>
